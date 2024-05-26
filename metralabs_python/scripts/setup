@@ -1,0 +1,49 @@
+#!/bin/env bash
+
+export METRALABS_VENV_DIR=$(pwd)/.venv
+
+if [ -z $METRALABS_PYTHON ] 
+then
+    PYTHON="python3"
+else
+    PYTHON=$METRALABS_PYTHON
+fi
+
+# force QT to use X11 on wayland (https://github.com/pyvista/pyvistaqt/issues/445)
+export QT_QPA_PLATFORM=xcb
+
+check_python_version() {
+
+    parsed_version=`$PYTHON -c "import sys;t='{v[0]}.{v[1]}'.format(v=list(sys.version_info[:2]));sys.stdout.write(t)";`
+    
+    supported_versions="3.8 3.9 3.10 3.11"
+
+    if echo $supported_versions | grep -w -q $parsed_version;
+    then
+        echo "Using $(which $PYTHON)"
+    else 
+        echo "Unsupported Python version: $parsed_version"
+        echo "Supported Python versions: "
+        echo "Specify a Python interpreter running"
+        echo ""
+        echo "      export METRALABS_PYTHON=/path/to/python"
+        echo "e.g.  export METRALABS_PYTHON=python3.11"
+        echo ""
+        echo "Then source this file again."
+        return
+    fi
+
+}
+
+# if the venv does not exist
+if [ ! -d $METRALABS_VENV_DIR ]
+then
+    check_python_version
+    echo "Setting up venv in $METRALABS_VENV_DIR..."
+    $PYTHON -m venv $METRALABS_VENV_DIR
+    source $METRALABS_VENV_DIR/bin/activate
+    pip install -r requirements.txt
+    pip install -e .
+else
+    source $METRALABS_VENV_DIR/bin/activate
+fi
